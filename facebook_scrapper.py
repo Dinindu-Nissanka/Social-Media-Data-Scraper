@@ -27,12 +27,6 @@ class Facebook_scraper:
         facebook_collection = db.facebook
         inserted_user_profile = facebook_collection.insert_one(user_data)
         return "New record " + str(inserted_user_profile.inserted_id) + " was inserted successfully"
-
-    def create_session(self):
-
-
-    def get_education_info(self,session):
-
     
     def scrape_profile_div(self,user_profile_url):
 

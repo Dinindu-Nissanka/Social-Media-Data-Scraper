@@ -1,10 +1,7 @@
 from bs4 import BeautifulSoup, Comment
 from urllib.request import urlopen
-from urllib.error import HTTPError,URLError
 import urllib
-from multiprocessing import Pool
 from fake_useragent import UserAgent
-from flask import jsonify
 from pymongo import MongoClient
 
 class Linked_in_scraper:
@@ -33,41 +30,33 @@ class Linked_in_scraper:
 
         return profile_data
 
-    def search_profile(self):
-        urlopener= urllib.request.build_opener()
-        urlopener.addheaders = [('User-agent', "Mozilla/5.0 Chrome/39.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3")]
-        self.search_page_source = urlopener.open('https://www.linkedin.com/pub/dir/?first=isuru&last=&trk=uno-reg-guest-home-name-search&search=Search').read()
-        
-        profile_details = []
-        for user_profile in user_profiles:
-            profile_details.append([self.get_profile_data(user_profile)])
-#        pool = Pool(4)
-#        user_profiles = self.get_user_profile_urls()
-#        profile_details = pool.map(self.get_profile_data, user_profiles)
-        return str(profile_details)
-
 
     def insert_data_in_database(self, user_data):
         client = MongoClient("mongodb://admin:admin@ds153765.mlab.com:53765/asidsocialmedia")
         db = client.asidsocialmedia
-        linkedin_collection = db.linked_in
+        linkedin_collection = db.linkedin
         inserted_user_profile = linkedin_collection.insert_one(user_data)
         return "New record " + str(inserted_user_profile.inserted_id) + " was inserted successfully"
 
     def scrape_profile_div(self,user_profile_url):
 
         urlopener= urllib.request.build_opener()
-        urlopener.addheaders = [('User-agent', UserAgent().random)]
+        urlopener.addheaders = [('User-agent', 'Mozilla/5.0')]
         profile_page_source = urlopener.open(user_profile_url).read()
         soup = BeautifulSoup(profile_page_source, 'html.parser')
 
+        html = soup.prettify("utf-8")
+        with open("linkedin.html", "wb") as file:
+            file.write(html)
         user_profile = {}
         name = soup.find('h1', attrs={'class':'fn','id':'name'})
         user_profile['name'] = name.text
 
         profile_picture = soup.find('div', attrs={'class':'profile-picture'})
         if(profile_picture != None):
-            user_profile['profile_picture'] = profile_picture.a.img['data-delayed-url']
+            section = profile_picture.find('a',attrs={'class':'photo'})
+            if (section != None):
+                user_profile['profile_picture'] = section['href']
 
         education = soup.find('ul',attrs={'class':'schools'})
         if(education != None):
